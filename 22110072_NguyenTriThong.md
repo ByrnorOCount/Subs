@@ -103,7 +103,8 @@ gdb -q vuln.out
 gdb-peda$ run $(python -c 'print "A"*20')
 ```
 
-[img 1]
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/1.png)
+
 Here, we can see `0xffffd740 ('A' <repeats 20 times>)` on the stack. The buffer is stored here, which is likely to be where the shell code is placed after the overflow. 
 
 ### 3: Construct the payload and conduct the attack
@@ -128,27 +129,11 @@ with open("payload.txt", "wb") as f:
 sudo ./vuln.out "$(cat payload.txt)"
 ```
 
-[img 2]
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/2.png)
 
 ##### 2. Verify the changes
 ```sh
 cat /etc/hosts
 ```
 
-[img 3]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+![image](https://raw.githubusercontent.com/ByrnorOCount/Subs/refs/heads/main/3.png)
