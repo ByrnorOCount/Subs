@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/4bcbe88a-4d8a-486b-81d3-753c899bbf69)# Lab #1
+# Lab #1
 ## Task 1: Software buffer overflow attack
 
 ### 1. Compile asm program and C program to executable code:
